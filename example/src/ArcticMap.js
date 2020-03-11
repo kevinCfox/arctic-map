@@ -1443,21 +1443,18 @@ var ArcticMapEdit$1 = function (_React$Component) {
         value: function fileUploaded(evt) {
             var self = this;
             var fileName = evt.target.value.toLowerCase();
-            console.log(fileName);
             if (fileName.indexOf(".zip") !== -1) {
                 // console.log("addEventListener", self);
                 self.processShapeFile(fileName, evt.target);
-            }
-            if (fileName.indexOf(".kml") !== -1) {
+            } else if (fileName.indexOf(".kml") !== -1) {
                 // console.log("addEventListener", self);
                 self.processKMLFile(fileName, evt.target);
-            }
-            if (fileName.indexOf(".geojson") !== -1) {
+            } else if (fileName.indexOf(".geojson") !== -1) {
                 // console.log("addEventListener", self);
 
                 self.processGeojsonFile(fileName, evt.target);
             } else {
-                document.getElementById("upload-status").innerHTML = '<p style="color:red">Add shapefile as .zip file</p>';
+                document.getElementById("upload-status").innerHTML = '<p style="color:red">Only shapefile(.zip), .kml, or .geojson are supported</p>';
             }
         }
     }, {
@@ -1503,16 +1500,34 @@ var ArcticMapEdit$1 = function (_React$Component) {
                 var styleMaps = self.get(xmlDoc, "StyleMap");
                 var styleIndex = {};
                 var styleByHash = {};
+                var styleMapIndex = {};
                 for (var k = 0; k < styles.length; k++) {
                     var hash = self.okhash(self.xml2str(styles[k])).toString(16);
                     styleIndex['#' + self.attr(styles[k], 'id')] = hash;
                     styleByHash[hash] = styles[k];
                 }
-                console.log("styleByHash", styleByHash);
+                for (var l = 0; l < styleMaps.length; l++) {
+                    styleIndex['#' + self.attr(styleMaps[l], 'id')] = self.okhash(self.xml2str(styleMaps[l])).toString(16);
+                    var pairs = self.get(styleMaps[l], 'Pair');
+                    var pairsMap = {};
+                    for (var m = 0; m < pairs.length; m++) {
+                        pairsMap[self.nodeVal(self.get1(pairs[m], 'key'))] = self.nodeVal(self.get1(pairs[m], 'styleUrl'));
+                    }
+                    styleMapIndex['#' + self.attr(styleMaps[l], 'id')] = pairsMap;
+                }
                 for (var j = 0; j < placemarks.length; j++) {
                     gj.features = gj.features.concat(self.getPlacemark(placemarks[j]));
                 }
-                console.log("gj", gj);
+
+                var features = [];
+
+                gj.features.forEach(function (f) {
+                    var esrijson = arcgisToGeojsonUtils.geojsonToArcGIS(f);
+
+                    features.push(esrijson);
+                });
+                self.addGeojsonToMap(features, file);
+                self.uploadPanel.current.toggle();
             });
         }
     }, {
@@ -1534,8 +1549,6 @@ var ArcticMapEdit$1 = function (_React$Component) {
                 lineStyle = this.get1(root, 'LineStyle'),
                 polyStyle = this.get1(root, 'PolyStyle'),
                 visibility = this.get1(root, 'visibility');
-
-            console.log("geomsAndTimes", geomsAndTimes);
 
             if (!geomsAndTimes.geoms.length) return [];
             if (name) properties.name = name;
@@ -1621,11 +1634,8 @@ var ArcticMapEdit$1 = function (_React$Component) {
                     properties: properties
                 };
                 if (this.attr(root, 'id')) feature.id = this.attr(root, 'id');
-                console.log("properties", properties);
-                console.log("feature", feature);
                 return [feature];
             }
-            // return gj;
         }
     }, {
         key: "getGeometry",
@@ -1666,6 +1676,7 @@ var ArcticMapEdit$1 = function (_React$Component) {
                             var rings = this.get(geomNode, 'LinearRing'),
                                 coords = [];
                             for (k = 0; k < rings.length; k++) {
+                                console.log("rings[k]", rings[k]);
                                 coords.push(this.coord(this.nodeVal(this.get1(rings[k], 'coordinates'))));
                             }
                             geoms.push({
@@ -1742,7 +1753,8 @@ var ArcticMapEdit$1 = function (_React$Component) {
     }, {
         key: "get1",
         value: function get1(x, y) {
-            var n = this.get(x, y);return n.length ? n[0] : null;
+            var n = this.get(x, y);
+            return n.length ? n[0] : null;
         }
     }, {
         key: "norm",
@@ -1760,11 +1772,15 @@ var ArcticMapEdit$1 = function (_React$Component) {
     }, {
         key: "coord",
         value: function coord(v) {
-            var coords = v.replace(this.trimSpace, '').split(this.splitSpace),
+            var trimSpace = /^\s*|\s*$/g;
+            var splitSpace = /\s+/;
+            var coords = v.replace(trimSpace, '').split(splitSpace),
                 o = [];
+
             for (var i = 0; i < coords.length; i++) {
                 o.push(this.coord1(coords[i]));
             }
+            console.log("coord o", o);
             return o;
         }
     }, {
@@ -1775,6 +1791,7 @@ var ArcticMapEdit$1 = function (_React$Component) {
     }, {
         key: "numarray",
         value: function numarray(x) {
+
             for (var j = 0, o = []; j < x.length; j++) {
                 o[j] = parseFloat(x[j]);
             }
@@ -1806,7 +1823,6 @@ var ArcticMapEdit$1 = function (_React$Component) {
             this.readTextFile(form.files[0]).then(function (text) {
 
                 var geojson = JSON.parse(text);
-
                 var features = [];
 
                 geojson.features.forEach(function (f) {
@@ -1825,7 +1841,6 @@ var ArcticMapEdit$1 = function (_React$Component) {
 
             var self = this;
             self.uploadPanel.current.toggle();
-            console.log("Process Shape File", fileName);
             var name = fileName.split(".");
             name = name[0].replace("c:\\fakepath\\", "");
 
@@ -1884,7 +1899,6 @@ var ArcticMapEdit$1 = function (_React$Component) {
                 var layers = featureCollection.layers.map(function (layer) {
 
                     var graphics = layer.featureSet.features.map(function (feature) {
-                        console.log("layer.featureSet.feature.map", feature);
                         var gfx = Graphic.fromJSON(feature);
                         gfx.symbol = {
                             type: "simple-fill", // autocasts as new SimpleFillSymbol()
@@ -1962,7 +1976,6 @@ var ArcticMapEdit$1 = function (_React$Component) {
                 var i = 0;
                 var graphics = featureCollection.map(function (feature) {
 
-                    console.log(feature);
                     feature.attributes["OBJECTID"] = i++;
                     var gfx = Graphic.fromJSON(feature);
 
@@ -1981,7 +1994,6 @@ var ArcticMapEdit$1 = function (_React$Component) {
 
                 });
 
-                console.log(graphics);
                 self.state.map.add(featureLayer);
                 self.state.view.goTo(graphics);
 
