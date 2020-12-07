@@ -35,7 +35,7 @@ class ArcticMapBaseControl extends React.Component {
             Zoom,
             LayerList,
             Legend,
-            BasemapGallery
+            BasemapGallery,
         ]) => {
 
             self.props.view.on('click', (event) => {
@@ -72,14 +72,43 @@ class ArcticMapBaseControl extends React.Component {
                 container: self.layersDiv,
                 listItemCreatedFunction: function (event) {
                     // only legend if imageFormat exist in TOC
-                    if (event.item.layer.imageFormat) {
-                        const item = event.item
+                    const item = event.item
+                    if (item.layer.imageFormat) {
+                        //const item = event.item
                         item.panel = {
                             content: 'legend',
                             open: false
                         }
                     }
-                    
+
+                    item.actionsSections = [
+                        [
+                            {
+                                title: "Increase opacity",
+                                className: "esri-icon-up",
+                                id: "increase-opacity"
+                            },
+                                                        {
+                                title: "Decrease opacity",
+                                className: "esri-icon-down",
+                                id: "decrease-opacity"
+                            }
+                        ]
+                    ];
+
+                                      
+                }
+            });
+
+            layerList.on("trigger-action", function (event) {
+
+                if (event.action.id === "increase-opacity") {
+                    event.item.layer.opacity += 0.1;
+                    event.item.layer.opacity >= 1 ? event.item.layer.opacity = 1:  event.item.layer.opacity;
+                }
+                if (event.action.id === "decrease-opacity") {
+                    event.item.layer.opacity -= 0.1;
+                    event.item.layer.opacity <= 0 ? event.item.layer.opacity = 0:  event.item.layer.opacity;
                 }
             });
             //self.state.view.ui.add(layerList, 'top-left')
