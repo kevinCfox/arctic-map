@@ -427,7 +427,8 @@ export default class App extends Component {
           <ArcticMapLayer
 
             type="dynamic"
-            src="https://gis.test.blm.gov/arcgis/rest/services/Cadastral/BLM_Natl_PLSS_CadNSDI/MapServer" >
+            allowMultiSelect="3"
+            src="https://gis.blm.gov/arcgis/rest/services/Cadastral/BLM_Natl_PLSS_CadNSDI/MapServer" >
 
           
 

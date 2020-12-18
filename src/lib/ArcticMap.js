@@ -200,6 +200,50 @@ class ArcticMap extends React.Component {
     }
   }
 
+  drawTempGraphic( view, event) {
+    view.graphics.removeAll();
+    //w.toMap({ x: event.x, y: event.y });
+    const pt1=view.toMap({x:event.origin.x, y:event.origin.y});
+    const pt2=view.toMap({x:event.x, y:event.y})
+    const rings= [
+      [pt1.x, pt1.y],
+      [pt1.x, pt2.y],      
+      [pt2.x, pt2.y],
+      [pt2.x, pt1.y]
+    ]
+    loadModules([
+      'esri/geometry/Polygon',
+      'esri/Graphic'
+
+    ]).then(([
+      Polygon,
+      Graphic
+
+    ]) => {
+      const tempPolygon = new Polygon({
+        hasz: false,
+        hasm: false,
+        rings: rings,
+        spatialReference: view.spatialReference
+      })
+      const tempSymbol = {
+        type: "simple-line",  // autocasts as new SimpleLineSymbol()
+        color: [128,128,128],
+        width: "5px",
+        style: "solid"
+      };
+      const tempPolygonGraphic = new Graphic ({
+        geometry: tempPolygon,
+        symbol: tempSymbol
+      })
+      view.graphics.add(tempPolygonGraphic);
+
+      if(event.action==="end"){
+        view.graphics.removeAll();
+      }
+    })
+  }
+
 
   handleMapLoad(map, view) {
 
@@ -353,8 +397,14 @@ class ArcticMap extends React.Component {
       });
 
       view.on('drag', (event) => {
+
+        
+        
+        
         if(self.state.mode==="select")
         {
+
+          self.drawTempGraphic( self.state.view, event);
           event.stopPropagation();
           var vw = self.state.view;
           var pt = vw.toMap({ x: event.x, y: event.y });
@@ -431,6 +481,7 @@ class ArcticMap extends React.Component {
           }
         }
         else if(event.button != 0){
+          self.drawTempGraphic( self.state.view, event);
           event.stopPropagation();
           var vw = self.state.view;
           var pt = vw.toMap({ x: event.x, y: event.y });
